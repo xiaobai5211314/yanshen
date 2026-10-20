@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

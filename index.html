@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="paper">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>纯净盐神 - 知乎盐选小说纯净阅读器</title>
+  <meta name="description" content="纯净盐神 - 零广告、全离线、高颜值的知乎盐选小说与专栏阅读器。收录 8,300+ 篇脑洞故事、规则怪谈、都市言情与高赞回答。">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 顶部常驻轻量进度指示器 -->
+  <div class="reading-progress-bar" id="readingProgressBar"></div>
+
+  <!-- 顶部导航条 -->
+  <header class="site-header">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="mobile-toggle-btn" id="mobileToggleBtn" title="打开小说目录">☰</button>
+      <div class="brand-wrapper" onclick="window.location.hash=''; window.app.renderWelcomeHero();">
+        <div class="brand-icon">盐</div>
+        <div class="brand-title-group">
+          <h1>纯净盐神 <span class="pure-badge">0 广告·纯净版</span></h1>
+        </div>
+      </div>
+    </div>
+
+    <!-- 快速搜索框 -->
+    <div class="header-search">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="搜索 8,300+ 篇小说、专栏、关键词 (按 / 聚焦)..." autocomplete="off">
+        <button class="clear-search-btn" id="clearSearchBtn">✕</button>
+      </div>
+    </div>
+
+    <!-- 右侧操作栏 -->
+    <div class="header-actions">
+      <!-- 风格主题切换 -->
+      <button class="action-btn" id="btnThemeToggle" title="切换阅读主题">
+        <span>🎨</span><span style="display: inline-block;">主题</span>
+      </button>
+
+      <!-- 排版设置 -->
+      <button class="action-btn" id="btnSettings" title="阅读排版设置">
+        <span>Aa</span>
+      </button>
+
+      <!-- 书签收藏 -->
+      <button class="action-btn" id="btnBookmarks" title="我的书签">
+        <span>★</span><span style="display: none;" class="desktop-text">书签</span>
+      </button>
+
+      <!-- 最近阅读 -->
+      <button class="action-btn" id="btnHistory" title="最近阅读记录">
+        <span>🕒</span><span style="display: none;" class="desktop-text">历史</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主视图容器 -->
+  <div class="app-container">
+    
+    <!-- 移动端侧栏遮罩 -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- 左侧专栏/小说目录抽屉 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-filters">
+        <div class="cat-chips-scroll" id="catChips">
+          <!-- 动态加载分类标签 -->
+        </div>
+        <div class="sidebar-status-bar">
+          <span id="totalCountSpan">正在加载全量索引...</span>
+          <span style="font-size: 11px;">按标题即时过滤</span>
+        </div>
+      </div>
+
+      <!-- 文章卡片列表 -->
+      <div class="article-list" id="articleList">
+        <!-- 动态渲染文章卡片 -->
+      </div>
+    </aside>
+
+    <!-- 右侧沉浸式阅读器主视窗 -->
+    <main class="reader-container" id="readerContainer">
+      <!-- 动态加载文章正文或欢迎引导 -->
+    </main>
+
+  </div>
+
+  <!-- Toast 弹出提示 -->
+  <div class="toast-notice" id="toastNotice"></div>
+
+  <!-- 排版设置 Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📖 阅读偏好设置</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('settingsModal').style.display='none'">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- 主题色系 -->
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block;">色彩模式</label>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <button class="action-btn theme-opt-btn" data-theme="paper" style="background:#f6f3eb; color:#2d2926; border-color:#e0d8c7;">羊皮纸</button>
+            <button class="action-btn theme-opt-btn" data-theme="dark" style="background:#141517; color:#e6e8eb; border-color:#2e3238;">极夜黑</button>
+            <button class="action-btn theme-opt-btn" data-theme="light" style="background:#ffffff; color:#1e293b; border-color:#e2e8f0;">极简白</button>
+            <button class="action-btn theme-opt-btn" data-theme="green" style="background:#edf4ed; color:#1e3320; border-color:#cbdccb;">浅草绿</button>
+          </div>
+        </div>
+
+        <!-- 字号调节 -->
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block;">字号大小</label>
+          <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); border-radius: 12px; padding: 6px 14px;">
+            <button class="action-btn" id="btnFontDec" style="padding: 4px 12px;">A- 缩小</button>
+            <span id="fontSizeDisplay" style="font-weight: 600;">17px</span>
+            <button class="action-btn" id="btnFontInc" style="padding: 4px 12px;">A+ 放大</button>
+          </div>
+        </div>
+
+        <!-- 字体选择 -->
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block;">正文字体</label>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <button class="action-btn font-opt-btn" data-font="sans">黑体 (无衬线)</button>
+            <button class="action-btn font-opt-btn" data-font="serif">宋体 (衬线)</button>
+            <button class="action-btn font-opt-btn" data-font="kaiti">楷体 (经典)</button>
+          </div>
+        </div>
+
+        <!-- 本地缓存管理 -->
+        <div style="padding-top: 10px; border-top: 1px dashed var(--border-color);">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; color: var(--text-secondary);">离线缓存清理</span>
+            <button class="action-btn" id="btnClearCache" style="color: #ef4444; border-color: #fca5a5;">清空缓存</button>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">清理已缓存的小说正文与阅读历史记录。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 书签 Modal -->
+  <div class="modal-overlay" id="bookmarksModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>★ 我的书签</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('bookmarksModal').style.display='none'">✕</button>
+      </div>
+      <div id="bookmarksListContent" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
+        <!-- 动态渲染书签 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史 Modal -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🕒 最近阅读历史</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('historyModal').style.display='none'">✕</button>
+      </div>
+      <div id="historyListContent" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
+        <!-- 动态渲染历史 -->
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // 弹窗与设置交互绑定
+    document.addEventListener('DOMContentLoaded', () => {
+      const settingsModal = document.getElementById('settingsModal');
+      const bookmarksModal = document.getElementById('bookmarksModal');
+      const historyModal = document.getElementById('historyModal');
+
+      // 主题轮换按钮
+      const themes = ['paper', 'dark', 'light', 'green'];
+      document.getElementById('btnThemeToggle')?.addEventListener('click', () => {
+        let curr = window.app.state.theme;
+        let idx = (themes.indexOf(curr) + 1) % themes.length;
+        let nextTheme = themes[idx];
+        window.app.state.theme = nextTheme;
+        localStorage.setItem('ys_theme', nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        window.app.showToast(`已切换主题: ${nextTheme}`);
+      });
+
+      // 排版设置弹窗
+      document.getElementById('btnSettings')?.addEventListener('click', () => {
+        settingsModal.style.display = 'flex';
+        document.getElementById('fontSizeDisplay').textContent = `${window.app.state.fontSize}px`;
+      });
+
+      // 主题选择
+      document.querySelectorAll('.theme-opt-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          const t = b.getAttribute('data-theme');
+          window.app.state.theme = t;
+          localStorage.setItem('ys_theme', t);
+          document.documentElement.setAttribute('data-theme', t);
+          window.app.showToast(`已切换色彩: ${t}`);
+        });
+      });
+
+      // 字号调节
+      document.getElementById('btnFontDec')?.addEventListener('click', () => {
+        if (window.app.state.fontSize > 13) {
+          window.app.state.fontSize -= 1;
+          localStorage.setItem('ys_fontsize', window.app.state.fontSize);
+          window.app.applyTypography();
+          document.getElementById('fontSizeDisplay').textContent = `${window.app.state.fontSize}px`;
+        }
+      });
+      document.getElementById('btnFontInc')?.addEventListener('click', () => {
+        if (window.app.state.fontSize < 25) {
+          window.app.state.fontSize += 1;
+          localStorage.setItem('ys_fontsize', window.app.state.fontSize);
+          window.app.applyTypography();
+          document.getElementById('fontSizeDisplay').textContent = `${window.app.state.fontSize}px`;
+        }
+      });
+
+      // 字体切换
+      document.querySelectorAll('.font-opt-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          const f = b.getAttribute('data-font');
+          window.app.state.fontFamily = f;
+          localStorage.setItem('ys_font', f);
+          window.app.applyTypography();
+          window.app.showToast(`字体已更新`);
+        });
+      });
+
+      // 清空缓存
+      document.getElementById('btnClearCache')?.addEventListener('click', async () => {
+        if (confirm('确定要清空已缓存的小说正文与阅读进度吗？')) {
+          await window.app.db.clear();
+          localStorage.removeItem('ys_progress');
+          localStorage.removeItem('ys_history');
+          window.app.state.progress = {};
+          window.app.state.history = [];
+          window.app.showToast('已彻底清空本地缓存与阅读记录');
+          settingsModal.style.display = 'none';
+        }
+      });
+
+      // 书签弹窗
+      document.getElementById('btnBookmarks')?.addEventListener('click', () => {
+        const listDiv = document.getElementById('bookmarksListContent');
+        const bms = window.app.state.bookmarks;
+        if (!bms || bms.length === 0) {
+          listDiv.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:30px;">暂无书签，阅读时点击“加入书签”即可收藏</div>';
+        } else {
+          listDiv.innerHTML = bms.map(id => {
+            const art = window.app.allArticles.find(a => a.id === id);
+            if (!art) return '';
+            return `
+              <div class="article-card" onclick="window.app.openArticle(${art.id}); document.getElementById('bookmarksModal').style.display='none';">
+                <div class="card-title">${art.title}</div>
+                <div class="card-meta"><span>${art.cat}</span><span>${art.date}</span></div>
+              </div>
+            `;
+          }).join('');
+        }
+        bookmarksModal.style.display = 'flex';
+      });
+
+      // 历史弹窗
+      document.getElementById('btnHistory')?.addEventListener('click', () => {
+        const listDiv = document.getElementById('historyListContent');
+        const hist = window.app.state.history;
+        if (!hist || hist.length === 0) {
+          listDiv.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:30px;">暂无阅读历史，点击左侧小说开始畅读</div>';
+        } else {
+          listDiv.innerHTML = hist.map(item => `
+            <div class="article-card" onclick="window.app.openArticle(${item.id}); document.getElementById('historyModal').style.display='none';">
+              <div class="card-title">${item.title}</div>
+              <div class="card-meta"><span>${item.cat}</span><span>${new Date(item.time).toLocaleDateString()}</span></div>
+            </div>
+          `).join('');
+        }
+        historyModal.style.display = 'flex';
+      });
+
+      // 点击外部关闭弹窗
+      [settingsModal, bookmarksModal, historyModal].forEach(m => {
+        m.addEventListener('click', (e) => {
+          if (e.target === m) m.style.display = 'none';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
