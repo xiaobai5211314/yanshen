@@ -136,24 +136,36 @@ class YanShenApp {
 
   async loadData() {
     try {
-      // 1. 优先本地读取，支持自动无缝回退至又拍云高速 CDN
       const CDN_BASE = 'https://guzhicdn.21212121.xyz/yanshen/';
       const fetchWithFallback = async (relPath) => {
         try {
           const res = await fetch(relPath);
           if (res.ok) return await res.json();
-        } catch (_) {}
-        const cdnRes = await fetch(CDN_BASE + relPath);
-        return await cdnRes.json();
+        } catch (e) {
+          console.warn(`本地请求 ${relPath} 失败，切换又拍云 CDN:`, e);
+        }
+        try {
+          const cdnRes = await fetch(CDN_BASE + relPath);
+          if (cdnRes.ok) return await cdnRes.json();
+        } catch (e2) {
+          console.warn(`CDN 请求 ${relPath} 失败:`, e2);
+        }
+        return null;
       };
+
+      if (this.els.totalCountSpan) {
+        this.els.totalCountSpan.textContent = '正在加载专栏索引...';
+      }
 
       const [indexRes, presetsRes] = await Promise.all([
         fetchWithFallback('data/index.json'),
-        fetchWithFallback('data/presets.json').catch(() => ({}))
+        fetchWithFallback('data/presets.json')
       ]);
 
-      this.allArticles = indexRes || [];
-      this.presets = presetsRes || {};
+      this.allArticles = Array.isArray(indexRes) ? indexRes : [];
+      this.presets = (presetsRes && typeof presetsRes === 'object') ? presetsRes : {};
+
+      console.log(`[纯净盐神] 成功加载 ${this.allArticles.length} 篇索引, ${Object.keys(this.presets).length} 篇预置。`);
 
       this.renderCategoryChips();
       this.applyFilter();
@@ -163,6 +175,11 @@ class YanShenApp {
       this.handleRoute();
     } catch (err) {
       console.error('加载数据失败:', err);
+      if (this.els.totalCountSpan) {
+        this.els.totalCountSpan.textContent = '加载失败，点击重试';
+        this.els.totalCountSpan.style.cursor = 'pointer';
+        this.els.totalCountSpan.onclick = () => this.loadData();
+      }
       this.showToast('加载索引失败，请检查网络或刷新');
     }
   }
@@ -391,7 +408,7 @@ class YanShenApp {
               </button>
             </div>
             <div style="font-size:12px; color:var(--text-muted);" id="wordCountLabel">
-              估算字数: ${Math.round(contentHtml.length * 0.7):,} 字
+              估算字数: ${Math.round(contentHtml.length * 0.7).toLocaleString()} 字
             </div>
           </div>
         </header>
