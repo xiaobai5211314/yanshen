@@ -3,107 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>我不是盐神 - 知乎盐选小说免费阅读 (纯净版)</title>
-  <meta name="description" content="我不是盐神 - 免费知乎盐选小说、爽文专栏、规则怪谈与高赞回答纯净阅读站。彻底去除所有广告弹窗，经典博客排版，即搜即看。">
+  <title>纯净盐神 · 知乎盐选小说纯净阅读站</title>
+  <meta name="description" content="纯净盐神 - 采用 Claude 优雅陶土主题与微软雅黑字体的知乎盐选小说纯净阅读器。零广告、零弹窗，收录 8,300+ 篇精选专栏。">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
-  <link rel="stylesheet" href="css/style.css?v=2.0.0">
+  <link rel="stylesheet" href="css/style.css?v=3.0.0">
 </head>
 <body>
 
-  <!-- 顶部阅读进度条 -->
+  <!-- 顶部轻量阅读进度条 -->
   <div class="progress-bar-top" id="topProgressBar"></div>
 
-  <!-- 顶部导航栏 (Navbar) -->
+  <!-- 顶部 Claude 极简导航条 -->
   <nav class="navbar" id="navbar">
     <div class="nav-container">
-      <a class="navbar-brand" onclick="window.app.navigate('home')">
-        <strong>我不是盐神</strong>
-        <span class="clean-badge">纯净版</span>
-      </a>
+      <div class="navbar-brand" onclick="window.app.navigate('home')">
+        <div class="brand-badge">盐</div>
+        <div class="brand-text">
+          <span>纯净盐神</span>
+          <span class="clean-pill">0 广告纯净版</span>
+        </div>
+      </div>
 
-      <ul class="navbar-links">
-        <li class="nav-item active" id="navHome">
-          <a onclick="window.app.navigate('home')">
-            <span>🏠</span> <span>主页</span>
-          </a>
-        </li>
-        <li class="nav-item" id="navCategories">
-          <a onclick="window.app.navigate('categories')">
-            <span>📂</span> <span>分类</span>
-          </a>
-        </li>
-        <li class="nav-item" id="navPresets">
-          <a onclick="window.app.navigate('presets')">
-            <span>📚</span> <span>离线精选</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <button class="nav-icon-btn" id="btnOpenSearch" title="全站搜索 (快捷键 /)">
-            <span>🔍</span>
-          </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-icon-btn" id="btnToggleTheme" title="切换暗黑/浅色模式">
-            <span id="themeIcon">🌓</span>
-          </button>
-        </li>
-      </ul>
+      <div class="navbar-links">
+        <button class="nav-btn active" id="navHome" onclick="window.app.navigate('home')">
+          <span>🏠</span> <span>主页</span>
+        </button>
+        <button class="nav-btn" id="navCategories" onclick="window.app.navigate('categories')">
+          <span>📂</span> <span>专栏分类</span>
+        </button>
+        <button class="nav-btn" id="navPresets" onclick="window.app.navigate('presets')">
+          <span>🔥</span> <span>热门精选</span>
+        </button>
+        <button class="icon-btn" id="btnOpenSearch" title="全站即时搜索 (快捷键 /)">
+          <span>🔍</span>
+        </button>
+        <button class="icon-btn" id="btnToggleTheme" title="切换暗黑/浅色模式">
+          <span id="themeIcon">🌓</span>
+        </button>
+      </div>
     </div>
   </nav>
 
-  <!-- 顶部 Hero 大横幅 (Banner) -->
-  <header class="banner" id="banner">
-    <div class="banner-content" id="bannerContent">
-      <h1 class="banner-title" id="bannerTitle">我不是盐神</h1>
-      <div class="banner-subtitle" id="bannerSubtitle">知乎盐选小说免费阅读 · 0 广告纯净版</div>
-      <div class="banner-meta" id="bannerMeta">
-        <span>收录 8,300+ 篇</span>
-        <span>·</span>
-        <span>180+ 专栏分类</span>
-        <span>·</span>
-        <span>离线秒开</span>
-      </div>
+  <!-- 主内容视图容器 -->
+  <div class="main-wrapper" id="mainWrapper">
+    <!-- 动态渲染：主页小说流 / 专栏矩阵 / 小说正文 -->
+    <div style="text-align: center; padding: 60px 20px; color: var(--t3);">
+      <div style="font-size: 30px; margin-bottom: 12px;">⏳</div>
+      <div>正在载入专栏书库与索引...</div>
     </div>
-  </header>
-
-  <!-- 主内容面板 (#board) -->
-  <div class="board-container">
-    <main class="board" id="board">
-      <!-- 动态视图：文章列表 / 分类矩阵 / 正文详情 -->
-      <div style="text-align: center; padding: 60px 20px; color: var(--sec-text-color);">
-        <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
-        <div>正在载入全量专栏书库...</div>
-      </div>
-    </main>
   </div>
 
-  <!-- 搜索模态框 (Search Modal) -->
-  <div class="search-modal-backdrop" id="searchModal">
-    <div class="search-modal">
-      <div class="search-header">
-        <span style="font-size: 18px;">🔍</span>
-        <input type="text" class="search-input-fluid" id="searchInput" placeholder="搜索 8,300+ 篇小说标题或专栏名称..." autocomplete="off">
-        <button class="search-close-btn" id="btnCloseSearch">✕</button>
+  <!-- Claude 浮层即时搜索模态框 -->
+  <div class="claude-modal-backdrop" id="searchModal">
+    <div class="claude-modal">
+      <div class="claude-modal-header">
+        <span style="font-size: 17px; color: var(--brand-1);">🔍</span>
+        <input type="text" class="modal-search-input" id="searchInput" placeholder="搜索 8,300+ 篇小说、专栏、关键词..." autocomplete="off">
+        <button class="modal-close-btn" id="btnCloseSearch">✕</button>
       </div>
-      <div class="search-results-list" id="searchResults">
-        <div style="text-align: center; padding: 30px; color: var(--sec-text-color); font-size: 13px;">
-          输入关键词即刻搜索全站小说
+      <div class="modal-search-list" id="searchResults">
+        <div style="text-align: center; padding: 26px; color: var(--t3); font-size: 13.5px;">
+          输入小说名或专栏关键词，即刻秒级模糊检索
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Toast 提示 -->
+  <!-- Toast 弹出提示 -->
   <div class="toast-notice" id="toastNotice"></div>
 
   <!-- 页脚 -->
-  <footer class="footer">
-    <div>我不是盐神 (纯净版) · 100% 零广告 · 微信读书级纯净排版</div>
-    <div style="margin-top: 6px; font-size: 12px; opacity: 0.75;">
-      小说版权归原作者及知乎盐选所有 · 本站仅供个人阅读归档与技术交流
+  <footer class="site-footer">
+    <div>纯净盐神 · Claude 官方雅致风格 · 全量采用微软雅黑字体 · 100% 零广告</div>
+    <div style="margin-top: 6px; font-size: 12px; opacity: 0.7;">
+      小说内容版权归原作者与知乎盐选所有 · 本站仅供个人阅读归档与技术交流
     </div>
   </footer>
 
-  <script src="js/app.js?v=2.0.0"></script>
+  <script src="js/app.js?v=3.0.0"></script>
 </body>
 </html>
