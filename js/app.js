@@ -538,12 +538,12 @@ class ClaudeYanShenApp {
 
     buttons.push(makeBtn(page - 1, '‹ 上一页', false, page <= 1));
 
-    let startPage = Math.max(1, page - 2);
-    let endPage = Math.min(totalPages, page + 2);
+    let startPage = Math.max(1, page - 1);
+    let endPage = Math.min(totalPages, page + 1);
 
     if (startPage > 1) {
       buttons.push(makeBtn(1, '1'));
-      if (startPage > 2) buttons.push('<span style="padding: 4px; color: var(--t3);">...</span>');
+      if (startPage > 2) buttons.push('<span style="padding: 2px 4px; color: var(--t3); font-size: 11px;">...</span>');
     }
 
     for (let p = startPage; p <= endPage; p++) {
@@ -551,7 +551,7 @@ class ClaudeYanShenApp {
     }
 
     if (endPage < totalPages) {
-      if (endPage < totalPages - 1) buttons.push('<span style="padding: 4px; color: var(--t3);">...</span>');
+      if (endPage < totalPages - 1) buttons.push('<span style="padding: 2px 4px; color: var(--t3); font-size: 11px;">...</span>');
       buttons.push(makeBtn(totalPages, totalPages));
     }
 

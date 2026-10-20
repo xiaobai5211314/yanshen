@@ -553,13 +553,6 @@ a {
   box-shadow: var(--shadow-card);
 }
 
-@media (max-width: 768px) {
-  .article-detail-view {
-    padding: 22px 18px;
-    border-radius: 10px;
-  }
-}
-
 .article-top-nav {
   display: flex;
   align-items: center;
@@ -807,4 +800,300 @@ a {
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   响应式移动端深度适配 (Mobile & Tablet Responsiveness)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .navbar {
+    height: 56px;
+  }
+  
+  .nav-container {
+    padding: 0 12px;
+  }
+  
+  .brand-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    border-radius: 7px;
+  }
+
+  .brand-text {
+    font-size: 16px;
+  }
+  
+  .navbar-brand .clean-pill {
+    display: none; /* 移动端隐藏较长标贴，腾出空间防止导航栏控件挤碎换行 */
+  }
+  
+  .navbar-links {
+    gap: 4px;
+  }
+  
+  .nav-btn {
+    padding: 5px 8px;
+    font-size: 12.5px;
+    gap: 3px;
+    border-radius: 6px;
+  }
+  
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .main-wrapper {
+    margin: 14px auto 40px;
+    padding: 0 12px;
+  }
+  
+  .claude-hero {
+    padding: 16px 15px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+  }
+  
+  .hero-title {
+    font-size: 17.5px;
+    line-height: 1.4;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .hero-title .clean-pill {
+    font-size: 10.5px;
+    padding: 1px 6px;
+  }
+  
+  .hero-desc {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  
+  .hero-meta-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 12px;
+  }
+  
+  .search-bar-claude {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+  }
+  
+  .search-shortcut-hint {
+    display: none; /* 手机端没有物理 / 键，隐藏以释放输入空间 */
+  }
+  
+  .search-input-claude {
+    font-size: 13.5px;
+  }
+  
+  .category-filter-bar {
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .category-filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  
+  .claude-card {
+    padding: 14px 15px;
+    border-radius: 10px;
+  }
+  
+  .card-article-title {
+    font-size: 15.5px;
+    line-height: 1.4;
+  }
+  
+  .card-excerpt-text {
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 8px;
+  }
+  
+  .card-bottom-row {
+    font-size: 11.5px;
+    padding-top: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .pagination-row {
+    gap: 4px;
+    margin-top: 20px;
+    padding-top: 14px;
+    flex-wrap: wrap;
+  }
+  
+  .claude-page-btn {
+    padding: 5px 9px;
+    font-size: 12px;
+    min-width: 32px;
+    border-radius: 6px;
+  }
+  
+  .article-detail-view {
+    padding: 18px 14px;
+    border-radius: 10px;
+  }
+  
+  .article-top-nav {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .article-top-nav .claude-page-btn {
+    padding: 4px 8px;
+    font-size: 11.5px;
+  }
+  
+  .article-main-title {
+    font-size: 19.5px;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+  
+  .article-header-meta {
+    font-size: 11.5px;
+    gap: 6px 10px;
+    margin-bottom: 16px;
+  }
+  
+  .markdown-body {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .markdown-body p {
+    margin-bottom: 1.25em;
+  }
+  
+  .markdown-body blockquote {
+    padding: 10px 14px;
+    margin: 1.2em 0;
+  }
+  
+  .post-switch-nav {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+  
+  .switch-nav-card {
+    width: 100%;
+    text-align: left !important;
+  }
+  
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .cat-box {
+    padding: 12px 14px;
+  }
+  
+  .cat-box-name {
+    font-size: 13.5px;
+  }
+  
+  .claude-modal-backdrop {
+    padding: 10px;
+    padding-top: 16px;
+    align-items: flex-start;
+  }
+  
+  .claude-modal {
+    width: 100%;
+    max-height: 88vh;
+    border-radius: 12px;
+  }
+  
+  .claude-modal-header {
+    padding: 12px 14px;
+  }
+  
+  .modal-search-input {
+    font-size: 15px;
+  }
+  
+  .modal-search-list {
+    max-height: 60vh;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-links {
+    gap: 2px;
+  }
+  
+  .nav-btn {
+    padding: 4px 6px;
+    font-size: 11.5px;
+  }
+  
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12.5px;
+  }
+  
+  .brand-badge {
+    width: 25px;
+    height: 25px;
+    font-size: 12.5px;
+    border-radius: 6px;
+  }
+  
+  .brand-text span:first-child {
+    font-size: 14.5px;
+  }
+  
+  .claude-hero {
+    padding: 14px 12px;
+  }
+  
+  .hero-title {
+    font-size: 15.5px;
+  }
+  
+  .hero-meta-row {
+    font-size: 11px;
+    gap: 6px;
+  }
+  
+  .card-article-title {
+    font-size: 14.5px;
+  }
+  
+  .claude-page-btn {
+    padding: 4px 7px;
+    font-size: 11px;
+    min-width: 26px;
+  }
 }
