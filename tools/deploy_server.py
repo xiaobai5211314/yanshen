@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 纯净盐神 - 自动化生产服务器部署脚本
-功能：打包本地站点资源，通过 SSH/SFTP 上传至腾讯云生产服务器，并配置 Nginx 站点
+功能：打包本地静态文件与数据，通过 SFTP/SSH 上传至腾讯云服务器，自动配置 Nginx 站点 (含 SSL)
 运行方式: python tools/deploy_server.py
 """
 import os
 import io
 import time
 import tarfile
-import tempfile
 import paramiko
 
 SERVER_HOST = "150.158.159.111"
@@ -17,18 +16,35 @@ SERVER_USER = "root"
 SERVER_PASS = "Dabai521@"
 
 REMOTE_DIR = "/www/wwwroot/yan.21212121.xyz"
+CERT_DIR = "/www/server/panel/vhost/cert/yan.21212121.xyz"
 NGINX_CONF_PATH = "/www/server/panel/vhost/nginx/yan.21212121.xyz.conf"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 NGINX_CONF_CONTENT = """# ==========================================================
-# 纯净盐神 (yan.21212121.xyz) Nginx 站点配置
+# 纯净盐神 (yan.21212121.xyz) Nginx 站点配置 (含 SSL)
 # ==========================================================
 server
 {
     listen 80;
+    listen 443 ssl;
+    http2 on;
     server_name yan.21212121.xyz yanshen.21212121.xyz;
     index index.html index.htm;
     root /www/wwwroot/yan.21212121.xyz;
+
+    # SSL 证书配置 (泛域名 *.21212121.xyz)
+    ssl_certificate /www/server/panel/vhost/cert/yan.21212121.xyz/fullchain.pem;
+    ssl_certificate_key /www/server/panel/vhost/cert/yan.21212121.xyz/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # HTTP 自动跳转 HTTPS
+    if ($server_port = 80) {
+        rewrite ^(/.*)$ https://$host$1 permanent;
+    }
 
     # Gzip 压缩支持
     gzip on;
@@ -39,14 +55,14 @@ server
     gzip_types text/plain application/javascript application/x-javascript text/javascript text/css application/xml application/json image/svg+xml;
     gzip_vary on;
 
-    # 静态缓存
-    location ~* \.(jpg|jpeg|gif|png|css|js|ico|svg|woff2|woff)$ {
+    # 静态资源缓存 (30天)
+    location ~* \\.(jpg|jpeg|gif|png|css|js|ico|svg|woff2|woff)$ {
         expires 30d;
         add_header Cache-Control "public, no-transform";
     }
 
     # 数据文件缓存策略 (5分钟)
-    location ~* \.(json|xml)$ {
+    location ~* \\.(json|xml)$ {
         expires 5m;
         add_header Cache-Control "public, max-age=300";
     }
@@ -82,7 +98,7 @@ def main():
             time.sleep(2)
             
     if not connected:
-        print("[x] 无法连接到服务器，请检查网络或凭据！")
+        print("[x] 无法连接到服务器，请检查网络！")
         return
 
     print("[✓] SSH 连接成功！")
@@ -99,7 +115,10 @@ def main():
         "css/style.css",
         "js/app.js",
         "data/index.json",
-        "data/presets.json"
+        "data/presets.json",
+        "tools/auto_update.py",
+        "tools/sync_articles.py",
+        "tools/sync_upyun.py"
     ]
 
     tar_buf = io.BytesIO()
@@ -110,17 +129,26 @@ def main():
                 tar.add(full_path, arcname=rel_path)
                 print(f"  + 打包: {rel_path} ({os.path.getsize(full_path):,} 字节)")
             else:
-                print(f"  - 跳过不存在文件: {rel_path}")
+                print(f"  - 跳过: {rel_path}")
 
     tar_buf.seek(0)
     tar_size = len(tar_buf.getvalue())
-    print(f"[*] 压缩包总大小: {tar_size:,} 字节 ({tar_size / 1024 / 1024:.2f} MB)")
+    print(f"[*] 压缩包总大小: {tar_size / 1024 / 1024:.2f} MB")
 
-    # 3. 确保远程目录存在
-    ssh.exec_command(f"mkdir -p {REMOTE_DIR}/css {REMOTE_DIR}/js {REMOTE_DIR}/data")
+    # 3. 确保证书与目录存在
+    ssh.exec_command(f"mkdir -p {REMOTE_DIR}/tools {REMOTE_DIR}/css {REMOTE_DIR}/js {REMOTE_DIR}/data {CERT_DIR}")
     time.sleep(1)
 
-    # 4. 上传压缩包并解压
+    # 检查并同步泛域名证书
+    cmd_cert = f"""
+    if [ ! -f "{CERT_DIR}/fullchain.pem" ]; then
+        cp -f /www/server/panel/vhost/cert/renqing.21212121.xyz/fullchain.pem {CERT_DIR}/
+        cp -f /www/server/panel/vhost/cert/renqing.21212121.xyz/privkey.pem {CERT_DIR}/
+    fi
+    """
+    ssh.exec_command(cmd_cert)
+
+    # 4. 上传并解压
     remote_tar = f"/tmp/yanshen_deploy_{int(time.time())}.tar.gz"
     print(f"[*] 正在上传压缩包至 {remote_tar} ...")
     sftp.putfo(tar_buf, remote_tar)
@@ -130,14 +158,12 @@ def main():
     stdin, stdout, stderr = ssh.exec_command(cmd_extract)
     stdout.channel.recv_exit_status()
 
-    # 5. 配置 Nginx 站点配置
+    # 5. 配置并检查 Nginx
     print("[*] 检查并更新 Nginx 站点配置文件...")
-    # 写入远程 conf
     conf_file = sftp.file(NGINX_CONF_PATH, "w")
     conf_file.write(NGINX_CONF_CONTENT)
     conf_file.close()
 
-    # 6. 测试并重载 Nginx
     print("[*] 测试 Nginx 配置并平滑重载...")
     stdin, stdout, stderr = ssh.exec_command("nginx -t && nginx -s reload")
     out = stdout.read().decode().strip()
@@ -150,8 +176,8 @@ def main():
     ssh.close()
 
     print("\n" + "=" * 60)
-    print("🎉 恭喜！纯净盐神 已成功部署到您的云服务器！")
-    print(f"🌐 站点访问地址: http://yan.21212121.xyz")
+    print("🎉 恭喜！纯净盐神 (含 SSL 安全加密) 已成功同步到您的云服务器！")
+    print(f"🌐 站点访问地址: https://yan.21212121.xyz")
     print(f"📁 服务器根目录: {REMOTE_DIR}")
     print("=" * 60)
 
