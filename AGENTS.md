@@ -19,7 +19,10 @@
 
 ## 3. 部署与运维
 - **服务器目标目录**：`/www/wwwroot/yan.21212121.xyz`（腾讯云 Ubuntu + 宝塔 Nginx 静态站点）。
-- **部署脚本**：运行 `python tools/deploy_server.py` 即可一键将最新前端代码和离线数据同步至生产服务器并配置 Nginx 站点。
+- **CI/CD 自动化部署**：
+  - 推送代码至 GitHub `main` 分支时，通过 GitHub Actions（`.github/workflows/deploy.yml`）自动将代码同步至腾讯云生产服务器并平滑重载 Nginx。
+  - 依赖 GitHub Secrets：`SERVER_HOST`、`SERVER_PORT`、`SERVER_USER`、`SERVER_SSH_KEY`。
+- **手动部署脚本**：运行 `python tools/deploy_server.py` 亦可一键将最新前端代码和离线数据打包上传至生产服务器。
 - **数据更新**：
   - 更新全量索引：`python tools/fetch_index.py`
   - 同步离线小说：`python tools/sync_articles.py`
