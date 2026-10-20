@@ -136,10 +136,20 @@ class YanShenApp {
 
   async loadData() {
     try {
-      // 1. 并行加载全量索引和精选预置
+      // 1. 优先本地读取，支持自动无缝回退至又拍云高速 CDN
+      const CDN_BASE = 'https://guzhicdn.21212121.xyz/yanshen/';
+      const fetchWithFallback = async (relPath) => {
+        try {
+          const res = await fetch(relPath);
+          if (res.ok) return await res.json();
+        } catch (_) {}
+        const cdnRes = await fetch(CDN_BASE + relPath);
+        return await cdnRes.json();
+      };
+
       const [indexRes, presetsRes] = await Promise.all([
-        fetch('data/index.json').then(r => r.json()),
-        fetch('data/presets.json').then(r => r.json()).catch(() => ({}))
+        fetchWithFallback('data/index.json'),
+        fetchWithFallback('data/presets.json').catch(() => ({}))
       ]);
 
       this.allArticles = indexRes || [];

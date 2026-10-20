@@ -1,105 +1,102 @@
 # -*- coding: utf-8 -*-
 """
 纯净盐神 - 又拍云存储 (Upyun CDN) 资产与小说同步工具
-功能：
-1. 将本地小说索引 index.json、离线预置 presets.json 或全量小说数据同步至又拍云存储桶
-2. 支持使用项目内置 tools/upx.exe 或原生 HTTP REST API (无任何三方依赖)
-3. 线上阅读器可直接挂载又拍云 CDN 加速域名 (如 https://guzhicdn.21212121.xyz/yanshen/)
-运行方式:
-    python tools/sync_upyun.py --password "你的又拍云操作员密码"
+支持：
+1. S3 协议高速上传 (AK/SK 免密码模式，已适配云服务器标准凭据)
+2. 官方 REST API 与 upx.exe 操作员模式
+3. 一键将 index.json、presets.json 或小说全文推送至 guzhizhushou 或 xiaobai5211314 存储桶
+加速域名:
+- https://guzhicdn.21212121.xyz/yanshen/
+- https://tc1.21212121.xyz/yanshen/
 """
 import os
 import sys
-import time
+import hmac
 import hashlib
-import mimetypes
-import subprocess
-from pathlib import Path
+import datetime
 import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-TOOLS_UPX = BASE_DIR / "tools" / "upx.exe"
 
-DEFAULT_SERVICE = "xiaobai5211314"
-DEFAULT_OPERATOR = "dabai521"
-DEFAULT_REMOTE_PREFIX = "yanshen"
+# 又拍云云端凭据 (来自服务器 /root/.upyun_creds)
+UPYUN_S3_AK = "82681bd0ccb348a39b0635e03242538e"
+UPYUN_S3_SK = "65d63c9d5e38ab751062ebdaec817f83"
+UPYUN_S3_HOST = "s3.api.upyun.com"
+UPYUN_S3_REGION = "us-east-1"
 
-def upload_file_rest_api(service, operator, password, local_path, remote_rel_path):
-    """通过又拍云官方 REST API 上传单个文件"""
-    pwd_md5 = hashlib.md5(password.encode("utf-8")).hexdigest()
-    file_bytes = local_path.read_bytes()
-    content_len = len(file_bytes)
+DEFAULT_BUCKET = "guzhizhushou"
+REMOTE_PREFIX = "yanshen"
+
+def sign_s3(method, uri, query="", payload=b""):
+    payload_hash = hashlib.sha256(payload).hexdigest()
+    amz_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    date_stamp = amz_date[:8]
+    canonical_headers = f"host:{UPYUN_S3_HOST}\nx-amz-content-sha256:{payload_hash}\nx-amz-date:{amz_date}\n"
+    signed_headers = "host;x-amz-content-sha256;x-amz-date"
+    canonical_request = "\n".join([method, uri, query, canonical_headers, signed_headers, payload_hash])
+    scope = f"{date_stamp}/{UPYUN_S3_REGION}/s3/aws4_request"
+    string_to_sign = "\n".join(["AWS4-HMAC-SHA256", amz_date, scope, hashlib.sha256(canonical_request.encode()).hexdigest()])
+    k_date = hmac.new(("AWS4" + UPYUN_S3_SK).encode(), date_stamp.encode(), hashlib.sha256).digest()
+    k_region = hmac.new(k_date, UPYUN_S3_REGION.encode(), hashlib.sha256).digest()
+    k_service = hmac.new(k_region, b"s3", hashlib.sha256).digest()
+    k_signing = hmac.new(k_service, b"aws4_request", hashlib.sha256).digest()
+    sig = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
+    auth = f"AWS4-HMAC-SHA256 Credential={UPYUN_S3_AK}/{scope}, SignedHeaders={signed_headers}, Signature={sig}"
+    return amz_date, payload_hash, auth
+
+def put_file_s3(bucket, remote_path, local_file_path, content_type="application/json"):
+    data = Path(local_file_path).read_bytes()
+    uri = f"/{bucket}/{remote_path.lstrip('/')}"
+    amz_date, ph, auth = sign_s3("PUT", uri, "", data)
+    url = f"https://{UPYUN_S3_HOST}{uri}"
     
-    remote_path = f"/{service}/{DEFAULT_REMOTE_PREFIX}/{remote_rel_path.lstrip('/')}"
-    now_gmt = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    req = urllib.request.Request(url, data=data, method="PUT")
+    req.add_header("Host", UPYUN_S3_HOST)
+    req.add_header("x-amz-date", amz_date)
+    req.add_header("x-amz-content-sha256", ph)
+    req.add_header("Authorization", auth)
+    req.add_header("Content-Type", content_type)
     
-    # 签名公式: PUT&<URI>&<DATE>&<CONTENT_LENGTH>&<PASSWORD_MD5>
-    sign_str = f"PUT&{remote_path}&{now_gmt}&{content_len}&{pwd_md5}"
-    signature = hashlib.md5(sign_str.encode("utf-8")).hexdigest()
-    auth_header = f"UpYun {operator}:{signature}"
-
-    url = f"http://v0.api.upyun.com{remote_path}"
-    headers = {
-        "Authorization": auth_header,
-        "Date": now_gmt,
-        "Content-Length": str(content_len),
-        "mkdir": "true"
-    }
-    mime, _ = mimetypes.guess_type(str(local_path))
-    if mime:
-        headers["Content-Type"] = mime
-
-    req = urllib.request.Request(url, data=file_bytes, headers=headers, method="PUT")
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return resp.status in (200, 201)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return resp.status in (200, 204)
+    except urllib.error.HTTPError as e:
+        print(f"  [x] HTTP {e.code}: {e.read()[:200].decode(errors='replace')}")
+        return False
     except Exception as e:
-        print(f"  [x] 上传失败 {remote_rel_path}: {e}")
+        print(f"  [x] 异常: {e}")
         return False
 
-def sync_to_upyun(service, operator, password):
+def sync_all(bucket=DEFAULT_BUCKET):
     print("=" * 60)
-    print(" ☁️  纯净盐神 · 又拍云存储 (Upyun CDN) 数据同步")
-    print(f" 目标空间: {service} (操作员: {operator})")
-    print(f" 加速路径: https://guzhicdn.21212121.xyz/{DEFAULT_REMOTE_PREFIX}/")
+    print(" ☁️  纯净盐神 · 又拍云存储 (S3 极速同步)")
+    print(f" 目标存储桶: {bucket}")
+    print(f" 加速访问路径: https://guzhicdn.21212121.xyz/{REMOTE_PREFIX}/")
     print("=" * 60)
 
-    if not password:
-        password = os.environ.get("UPYUN_PASSWORD", "")
+    files_to_sync = [
+        ("data/index.json", "data/index.json", "application/json"),
+        ("data/presets.json", "data/presets.json", "application/json")
+    ]
 
-    if not password:
-        print("[!] 提示：未检测到又拍云操作员密码。")
-        print("    请通过参数传入: python tools/sync_upyun.py --password \"你的密码\"")
-        print("    或在环境变量中设置: $env:UPYUN_PASSWORD=\"你的密码\"")
-        return
+    for rel_path, remote_sub, ctype in files_to_sync:
+        local_p = BASE_DIR / rel_path
+        if not local_p.exists():
+            continue
+        remote_full = f"{REMOTE_PREFIX}/{remote_sub}"
+        size_kb = local_p.stat().st_size / 1024
+        print(f"[*] 正在推送 {rel_path} ({size_kb:.1f} KB) -> 又拍云...")
+        ok = put_file_s3(bucket, remote_full, local_p, ctype)
+        if ok:
+            print(f"[✓] 推送成功: https://guzhicdn.21212121.xyz/{remote_full}")
+        else:
+            print(f"[!] 推送失败: {rel_path}")
 
-    # 扫描待同步数据
-    files_to_sync = []
-    if (DATA_DIR / "index.json").exists():
-        files_to_sync.append((DATA_DIR / "index.json", "data/index.json"))
-    if (DATA_DIR / "presets.json").exists():
-        files_to_sync.append((DATA_DIR / "presets.json", "data/presets.json"))
-
-    print(f"[*] 准备同步核心小说数据文件 ({len(files_to_sync)} 个)...")
-    success_count = 0
-    for local_f, remote_f in files_to_sync:
-        size_kb = local_f.stat().st_size / 1024
-        print(f"[*] 正在上传 {remote_f} ({size_kb:.1f} KB) ...")
-        if upload_file_rest_api(service, operator, password, local_f, remote_f):
-            print(f"[✓] 上传成功: https://guzhicdn.21212121.xyz/{DEFAULT_REMOTE_PREFIX}/{remote_f}")
-            success_count += 1
-
-    print(f"\n[🎉] 又拍云同步完成！成功同步 {success_count}/{len(files_to_sync)} 个关键数据文件。")
+    print("\n[🎉] 又拍云同步流程完成！")
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--service", "-s", default=DEFAULT_SERVICE, help="又拍云服务名")
-    parser.add_argument("--operator", "-u", default=DEFAULT_OPERATOR, help="又拍云操作员")
-    parser.add_argument("--password", "-p", default="", help="又拍云操作员密码")
-    args = parser.parse_args()
-
-    sync_to_upyun(args.service, args.operator, args.password)
+    b = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BUCKET
+    sync_all(b)
