@@ -46,10 +46,28 @@
 │   ├── index.json             # 全站 8,300+ 篇专栏检索索引库
 │   └── presets.json           # 预置离线高赞精选小说全文库
 └── tools/
-    ├── fetch_index.py         # 全量索引更新抓取脚本
-    ├── sync_articles.py       # 离线爆款小说批量抓取与预置脚本
-    └── deploy_server.py       # 云端服务器一键自动化部署脚本
+    ├── auto_update.py         # 全自动检测、增量拉取与源站同步脚本
+    ├── sync_upyun.py          # 又拍云存储 (Upyun CDN) 一键同步工具
+    ├── sync_articles.py       # 离线小说批量预置抓取脚本
+    ├── deploy_server.py       # 云端服务器一键自动化部署脚本 (含 SSL)
+    └── upx.exe                # 又拍云官方 CLI 客户端
 ```
+
+---
+
+## 🔄 自动化更新与又拍云同步
+
+1. **自动增量更新**：
+   ```bash
+   python tools/auto_update.py
+   ```
+   自动对比源站最新发布的章节与小说，发现新文章即刻增量拉取并补全索引，全程无需人工排查。可在云服务器上配置日常 Crontab 每天定时执行。
+
+2. **同步至又拍云 CDN 存储**：
+   ```bash
+   python tools/sync_upyun.py --password "你的又拍云操作员密码"
+   ```
+   一键将核心小说索引库与数据推送到又拍云存储空间，享受全国 CDN 节点毫秒级加速。
 
 ---
 
