@@ -23,6 +23,8 @@
   - 推送代码至 GitHub `main` 分支时，通过 GitHub Actions（`.github/workflows/deploy.yml`）自动将代码同步至腾讯云生产服务器并平滑重载 Nginx。
   - 依赖 GitHub Secrets：`SERVER_HOST`、`SERVER_PORT`、`SERVER_USER`、`SERVER_SSH_KEY`。
 - **手动部署脚本**：运行 `python tools/deploy_server.py` 亦可一键将最新前端代码和离线数据打包上传至生产服务器。
-- **数据更新**：
-  - 更新全量索引：`python tools/fetch_index.py`
-  - 同步离线小说：`python tools/sync_articles.py`
+- **数据更新与增量同步**：
+  - **一键全自动增量更新**：运行 `python tools/auto_update.py`（自动对比源站增量、剥离广告、追加离线预置、推送到又拍云 CDN 并自动触发 GitHub Actions 发布上线）。
+  - **云端定时无人值守更新**：GitHub Actions（`.github/workflows/deploy.yml`）已配置每天中午 12:00（UTC 04:00）自动检查源站新小说并全自动增量更新部署。
+  - **又拍云 CDN 单独推送**：`python tools/sync_upyun.py`。
+  - 手动底层工具：`python tools/fetch_index.py`（拉取全量索引）、`python tools/sync_articles.py`（批量清洗离线小说）。
