@@ -2,10 +2,12 @@
 """
 纯净盐神 - 全自动增量更新拉取脚本
 功能：
-1. 监听源站 local-search.xml 与 sitemap.xml
+1. 监听源站 (onehu.xyz) local-search.xml 与 sitemap.xml
 2. 智能对比当前已收录的 index.json，检测是否有新文章或新章节发布
 3. 自动抓取新增文章内容，彻底过滤清洗广告代码
-4. 自动将新文章追加到本地索引与预置库，并可联动部署到云端服务器或推送到 GitHub
+4. 自动将新文章追加到本地索引与预置库 (index.json / presets.json)
+5. 自动同步推送至又拍云 CDN 高速存储桶 (guzhizhushou)
+6. 自动提交并推送至 GitHub 仓库 (xiaobai5211314/yanshen)，触发 Actions 自动上线
 运行方式: python tools/auto_update.py
 """
 import os
@@ -13,6 +15,7 @@ import re
 import ssl
 import json
 import time
+import subprocess
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -40,7 +43,7 @@ def clean_html(html_str):
     content = re.sub(r'<a[^>]*href=[\'"][^\'"]*pagead[^\'"]*[\'"][^>]*>.*?</a>', '', content, flags=re.I)
     return content
 
-def check_and_update():
+def check_and_update(push_git=True, sync_cdn=True):
     print("=" * 60)
     print(" 🔄 纯净盐神 - 自动检测与增量拉取更新")
     print("=" * 60)
@@ -67,7 +70,7 @@ def check_and_update():
             xml_content = res.read()
     except Exception as e:
         print(f"[x] 请求源站失败: {e}")
-        return
+        return False
 
     root = ET.fromstring(xml_content)
     new_articles = []
@@ -101,7 +104,7 @@ def check_and_update():
 
     if not new_articles:
         print("[✓] 检查完毕！本地数据库已是最新状态，源站暂无新增小说。")
-        return
+        return False
 
     print(f"[🔥] 发现 {len(new_articles)} 篇源站新增小说！正在执行增量拉取...")
     
@@ -141,7 +144,32 @@ def check_and_update():
     with open(PRESETS_PATH, "w", encoding="utf-8") as f:
         json.dump(presets, f, ensure_ascii=False, indent=2)
 
-    print("\n[🎉] 增量更新同步完成！可通过 tools/deploy_server.py 推送至线上服务器。")
+    # 5. 同步至又拍云 CDN
+    if sync_cdn:
+        try:
+            print("\n[*] 正在同步增量数据至又拍云 CDN (guzhizhushou)...")
+            from sync_upyun import sync_all
+            sync_all()
+        except Exception as e:
+            print(f"[!] 又拍云同步异常: {e}")
+
+    # 6. 推送至 GitHub
+    if push_git:
+        try:
+            status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=BASE_DIR).stdout.strip()
+            if status:
+                print("\n[*] 正在将更新文件提交至 Git 并推送至 GitHub...")
+                subprocess.run(["git", "add", "."], cwd=BASE_DIR)
+                commit_msg = f"feat: sync {len(new_articles)} new stories from source (total: {len(updated_articles)})"
+                subprocess.run(["git", "commit", "-m", commit_msg], cwd=BASE_DIR)
+                subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR)
+                print("🎉 推送成功！已触发 GitHub Actions 自动部署至线上生产环境：")
+                print("🌐 站点地址: https://yan.21212121.xyz")
+        except Exception as e:
+            print(f"[!] Git 推送异常: {e}")
+
+    print("\n[🎉] 增量更新与同步流程全部完成！")
+    return True
 
 if __name__ == "__main__":
     check_and_update()

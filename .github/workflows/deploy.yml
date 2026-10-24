@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 4 * * *' # 每天北京时间中午 12:00 自动检查源站小说更新
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: deploy-yanshen
@@ -19,6 +24,20 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Python 运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 定时自动拉取源站新增小说 (如果存在新篇目)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python tools/auto_update.py || true
 
       - name: 配置 SSH 密钥
         run: |
